@@ -65,8 +65,8 @@ Model* squareModel;
 //----------------------Globals-------------------------------------------------
 Point3D cam, point;
 Model *model1;
-FBOstruct *fbo1, *fbo2;
-GLuint phongshader = 0, plaintextureshader = 0;
+FBOstruct *fbo1, *fbo2, *fbo3;
+GLuint phongshader = 0, plaintextureshader = 0, lpShader = 0, lpyShader = 0, trunkShader = 0;
 
 //-------------------------------------------------------------------------------------
 
@@ -84,11 +84,16 @@ void init(void)
 	// Load and compile shaders
 	plaintextureshader = loadShaders("plaintextureshader.vert", "plaintextureshader.frag");  // puts texture on teapot
 	phongshader = loadShaders("phong.vert", "phong.frag");  // renders with light (used for initial renderin of teapot)
+	lpShader = loadShaders("lp.vert", "lp.frag");
+  lpyShader = loadShaders("lp.vert", "lpy.frag");
+  trunkShader = loadShaders("lp.vert", "trunk.frag");
+
 
 	printError("init shader");
 
 	fbo1 = initFBO(W, H, 0);
 	fbo2 = initFBO(W, H, 0);
+	fbo3 = initFBO(W, H, 0);
 
 	// load the model
 //	model1 = LoadModelPlus("teapot.obj");
@@ -151,26 +156,54 @@ void display(void)
 
 	// Done rendering the FBO! Set up for rendering on screen, using the result as texture!
 
-//	glFlush(); // Can cause flickering on some systems. Can also be necessary to make drawing complete.
-	useFBO(0L, fbo1, 0L);
-	glClearColor(0.0, 0.0, 0.0, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //	glFlush(); // Can cause flickering on some systems. Can also be necessary to make drawing complete.
+  
+//DOING STUFF WITH FILTER
 
-	// Activate second shader program
-	glUseProgram(plaintextureshader);
+  renderToFBO(fbo2, fbo1, trunkShader);
 
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-	DrawModel(squareModel, plaintextureshader, "in_Position", NULL, "in_TexCoord");
 
-	glutSwapBuffers();
+  int i;
+  for(i = 0; i< 10; i++){
+    renderToFBO(fbo3, fbo2, lpShader);
+    renderToFBO(fbo2, fbo3, lpShader);
+    renderToFBO(fbo3, fbo2, lpyShader);
+    renderToFBO(fbo2, fbo3, lpyShader);
+  }
+  // till skärm
+  useFBO(0L, fbo2, 0L);
+  glClearColor(0.0, 0.0, 0.0, 0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Activate second shader program
+  glUseProgram(plaintextureshader);
+
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  DrawModel(squareModel, plaintextureshader, "in_Position", NULL, "in_TexCoord");
+
+
+  glutSwapBuffers();
+}
+
+void renderToFBO(FBOstruct* fbo1, FBOstruct* fbo2, GLuint shader){
+  useFBO(fbo1, fbo2, 0L);
+  glClearColor(0.0, 0.0, 0.0, 0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Activate second shader program
+  glUseProgram(shader);
+
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  DrawModel(squareModel, shader, "in_Position", NULL, NULL);
 }
 
 void reshape(GLsizei w, GLsizei h)
 {
-	glViewport(0, 0, w, h);
-	GLfloat ratio = (GLfloat) w / (GLfloat) h;
-	projectionMatrix = perspective(90, ratio, 1.0, 1000);
+  glViewport(0, 0, w, h);
+  GLfloat ratio = (GLfloat) w / (GLfloat) h;
+  projectionMatrix = perspective(90, ratio, 1.0, 1000);
 }
 
 
@@ -185,18 +218,18 @@ void idle()
 //-----------------------------main-----------------------------------------------
 int main(int argc, char *argv[])
 {
-	glutInit(&argc, argv);
+  glutInit(&argc, argv);
 
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-	glutInitWindowSize(W, H);
+  glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+  glutInitWindowSize(W, H);
 
-	glutInitContextVersion(3, 2);
-	glutCreateWindow ("Render to texture with FBO");
-	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
-	glutIdleFunc(idle);
-	initKeymapManager();
+  glutInitContextVersion(3, 2);
+  glutCreateWindow ("Render to texture with FBO");
+  glutDisplayFunc(display);
+  glutReshapeFunc(reshape);
+  glutIdleFunc(idle);
+  initKeymapManager();
 
-	init();
-	glutMainLoop();
+  init();
+  glutMainLoop();
 }
