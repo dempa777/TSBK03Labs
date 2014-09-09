@@ -132,7 +132,6 @@ void display(void)
 	// Clear framebuffer & zbuffer
 	glClearColor(0.1, 0.1, 0.3, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	// Activate shader program
 	glUseProgram(phongshader);
 
@@ -164,19 +163,23 @@ void display(void)
 
 
   int i;
-  for(i = 0; i< 10; i++){
+  for(i = 0; i< 50; i++){
     renderToFBO(fbo3, fbo2, lpShader);
     renderToFBO(fbo2, fbo3, lpShader);
     renderToFBO(fbo3, fbo2, lpyShader);
     renderToFBO(fbo2, fbo3, lpyShader);
   }
   // till skärm
-  useFBO(0L, fbo2, 0L);
+  useFBO(0L, fbo1, fbo2);
   glClearColor(0.0, 0.0, 0.0, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Activate second shader program
   glUseProgram(plaintextureshader);
+
+
+	glUniform1i(glGetUniformLocation(plaintextureshader, "texUnit"), 0);
+	glUniform1i(glGetUniformLocation(plaintextureshader, "texUnit2"), 1);
 
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);
@@ -193,6 +196,8 @@ void renderToFBO(FBOstruct* fbo1, FBOstruct* fbo2, GLuint shader){
 
   // Activate second shader program
   glUseProgram(shader);
+
+	glUniform1i(glGetUniformLocation(shader, "texUnit"), 0); 
 
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);

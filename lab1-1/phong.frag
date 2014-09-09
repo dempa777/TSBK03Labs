@@ -27,7 +27,7 @@ void main(void)
 	vec3 v = normalize(-exSurface); // View direction
 	specular = dot(r, v);
 	if (specular > 0.0)
-		specular = 1.5 * pow(specular, 20.0);
+		specular = 3.0 * pow(specular, 20.0);
 	specular = max(specular, 0.0);
 	shade = 0.7*diffuse + 1.0*specular;
  
