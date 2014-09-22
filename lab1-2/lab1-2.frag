@@ -14,17 +14,17 @@ out vec4 out_Color;
 void main(void)
 {
     vec3 light = vec3(0.0, 0.7, 0.7); // Light source in view coordinates
-	
-	// Calculate gradients here
-	float offset = 1.0 / 256.0; // texture size, same in both directions
-  vec2 tcs = vec2(outTexCoord.s + offset, outTexCoord.t);
-  float bs = texture(texUnit, tcs) - texture(texUnit, outTexCoord); 
-  vec2 tct = vec2(outTexCoord.s , outTexCoord.t+ offset);
-  float bt = texture(texUnit, tct) - texture(texUnit, outTexCoord);
+
+    // Calculate gradients here
+    float offset = 1.0 / 256.0; // texture size, same in both directions
+    vec2 tcs = vec2(outTexCoord.s + offset, outTexCoord.t);
+    float bs = texture(texUnit, tcs) - texture(texUnit, outTexCoord); 
+    vec2 tct = vec2(outTexCoord.s , outTexCoord.t+ offset);
+    float bt = texture(texUnit, tct) - texture(texUnit, outTexCoord);
 
 
-      vec3 normal = normalize(out_Normal + bs*Ps + bt*Pt);
-      // Simplified lighting calculation.
-      // A full solution would include material, ambient, specular, light sources, multiply by texture.
-      out_Color = vec4( dot(normal, light));
-      }
+    vec3 normal = normalize(out_Normal + bs*Ps + bt*Pt);
+    // Simplified lighting calculation.
+    // A full solution would include material, ambient, specular, light sources, multiply by texture.
+    out_Color = vec4( dot(normal, light));
+}

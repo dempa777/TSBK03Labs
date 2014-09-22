@@ -6,7 +6,7 @@ in vec2 texCoord;
 out vec4 fragColor;
 
 void main(void){
-  float offset = 2.0/512;
+  float offset = 1.0/512;
   vec2 tc = texCoord;
   vec4 c = texture(texUnit, tc);
   tc.x = tc.x + offset;

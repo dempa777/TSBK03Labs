@@ -163,7 +163,7 @@ void display(void)
 
 
   int i;
-  for(i = 0; i< 50; i++){
+  for(i = 0; i< 10; i++){
     renderToFBO(fbo3, fbo2, lpShader);
     renderToFBO(fbo2, fbo3, lpShader);
     renderToFBO(fbo3, fbo2, lpyShader);
