@@ -90,8 +90,11 @@ void BuildCylinder()
 			g_normalsOrg[row][corner].y = cos(corner * 2*Pi / kMaxCorners);
 			g_normalsOrg[row][corner].z = sin(corner * 2*Pi / kMaxCorners);
 
-			g_boneWeights[row][corner].x = (1-weight[row]);
-			g_boneWeights[row][corner].y = weight[row];
+			//g_boneWeights[row][corner].x = (1-weight[row]);
+			//g_boneWeights[row][corner].y = weight[row];
+			g_boneWeights[row][corner].x = (1.0f-((float)row/kMaxRow));
+			g_boneWeights[row][corner].y = ((float)row/kMaxRow);
+
 			g_boneWeights[row][corner].z = 0.0;
 		};
 
@@ -194,45 +197,82 @@ void DeformCylinder()
 		for (corner = 0; corner < kMaxCorners; corner++)
 		{
 			//g_vertsRes[row][corner] = g_vertsOrg[row][corner];
-      Point3D p = g_vertsOrg[row][corner];
+
       int boneIndex = weight[row];
+      vec3 p = g_vertsOrg[row][corner];
+      vec3 m1, m2;
+
+      // första
       vec3 bonePos = g_bones[boneIndex].pos;
       mat4 minusTrans = T(-bonePos.x, -bonePos.y, -bonePos.z);
       mat4 trans = T(bonePos.x, bonePos.y, bonePos.z);
 
-      g_vertsRes[row][corner] = MultVec3(trans, MultVec3(g_bones[boneIndex].rot, MultVec3(minusTrans, p)));
-			
-			// ----=========	Uppgift 1: Hard skinning (stitching) i CPU ===========-----
-			// Deformera cylindern enligt det skelett som finns
-			// i g_bones.
-			//
-			// Gör hard skinning.
-			//
-			// g_bones innehåller benen.
-			// g_vertsOrg innehåller ursprunglig vertexdata.
-			// g_vertsRes innehåller den vertexdata som skickas till OpenGL.
-			//
-			// row traverserar i cylinderns längdriktning,
-			// corner traverserar "runt" cylindern
-	  
+      m2 = MultVec3(trans, MultVec3(g_bones[boneIndex].rot, MultVec3(minusTrans, p)));
+
+      // andra
+      boneIndex = (boneIndex - 1)*(boneIndex - 1);
+      bonePos = g_bones[boneIndex].pos;
+      minusTrans = T(-bonePos.x, -bonePos.y, -bonePos.z);
+      trans = T(bonePos.x, bonePos.y, bonePos.z);
+
+      m1 = MultVec3(trans, MultVec3(g_bones[boneIndex].rot, MultVec3(minusTrans, p)));
 
 
-			
-			// ---=========	Uppgift 2: Soft skinning i CPU ===========------
-			// Deformera cylindern enligt det skelett som finns
-			// i g_bones.
-			//
-			// Gör soft skinning.
-			//
-			// g_bones innehåller benen.
-			// g_boneWeights innehåller blendvikter för benen.
-			// g_vertsOrg innehåller ursprunglig vertexdata.
-			// g_vertsRes innehåller den vertexdata som skickas till OpenGL.
-			
-		}
-	}
+
+
+      printf("Weight = x = %f, y = %f, z = %f\n", g_boneWeights[row][corner].x,g_boneWeights[row][corner].y,g_boneWeights[row][corner].z);
+      if(boneIndex == 0) {
+        g_vertsRes[row][corner].x = m2.x*g_boneWeights[row][corner].y + m1.x*g_boneWeights[row][corner].x;
+        g_vertsRes[row][corner].y = m2.y*g_boneWeights[row][corner].y + m1.y*g_boneWeights[row][corner].x;
+        g_vertsRes[row][corner].z = m2.z*g_boneWeights[row][corner].y + m1.z*g_boneWeights[row][corner].x;
+      } else {
+        g_vertsRes[row][corner].x = m1.x*g_boneWeights[row][corner].y + m2.x*g_boneWeights[row][corner].x;
+        g_vertsRes[row][corner].y = m1.y*g_boneWeights[row][corner].y + m2.y*g_boneWeights[row][corner].x;
+        g_vertsRes[row][corner].z = m1.z*g_boneWeights[row][corner].y + m2.z*g_boneWeights[row][corner].x;
+      }
+
+      // ----=========	Uppgift 1: Hard skinning (stitching) i CPU ===========-----
+      // Deformera cylindern enligt det skelett som finns
+      // i g_bones.
+      //
+      // Gör hard skinning.
+      //
+      // g_bones innehåller benen.
+      // g_vertsOrg innehåller ursprunglig vertexdata.
+      // g_vertsRes innehåller den vertexdata som skickas till OpenGL.
+      //
+      // row traverserar i cylinderns längdriktning,
+      // corner traverserar "runt" cylindern
+
+
+
+
+      // ---=========	Uppgift 2: Soft skinning i CPU ===========------
+      // Deformera cylindern enligt det skelett som finns
+      // i g_bones.
+      //
+      // Gör soft skinning.
+      //
+      // g_bones innehåller benen.
+      // g_boneWeights innehåller blendvikter för benen.
+      // g_vertsOrg innehåller ursprunglig vertexdata.
+      // g_vertsRes innehåller den vertexdata som skickas till OpenGL.
+
+    }
+  }
 }
 
+void getSkinningVertPos(Point3D p, int boneIndex, vec3 *vector) {
+
+  vec3 bonePos = g_bones[boneIndex].pos;
+  mat4 minusTrans = T(-bonePos.x, -bonePos.y, -bonePos.z);
+  mat4 trans = T(bonePos.x, bonePos.y, bonePos.z);
+
+  vec3  v = MultVec3(trans, MultVec3(g_bones[boneIndex].rot, MultVec3(minusTrans, p)));
+  vector->x = v.x;
+  vector->y = v.y;
+  vector->z = v.z;
+}
 
 /////////////////////////////////////////////
 //		A N I M A T E	B O N E S
@@ -240,14 +280,14 @@ void DeformCylinder()
 //			vrider ben 1 i en sin(counter) 
 void animateBones(void)
 {
-	float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+  float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
 
-	// Hur mycket skall vi vrida?
-	float angle = sin(time * 3.f) / 2.0f * 3.0f;
+  // Hur mycket skall vi vrida?
+  float angle = sin(time * 3.f) / 2.0f * 3.0f;
 
-	// rotera på ben 1
-	g_bones[1].rot = Rz(angle);
-//	printf("%f %f\n", angle, time);
+  // rotera på ben 1
+  g_bones[1].rot = Rz(angle);
+  //	printf("%f %f\n", angle, time);
 }
 
 
@@ -256,8 +296,8 @@ void animateBones(void)
 // Desc:	sätter bone rotationen i vertex shadern
 void setBoneRotation(void)
 {
-	// Uppgift 3 TODO: Här behöver du skicka över benens rotation
-	// till vertexshadern
+  // Uppgift 3 TODO: Här behöver du skicka över benens rotation
+  // till vertexshadern
 }
 
 
@@ -266,8 +306,8 @@ void setBoneRotation(void)
 // Desc:	sätter bone positionen i vertex shadern
 void setBoneLocation(void)
 {
-	// Uppgift 3 TODO: Här behöver du skicka över benens position
-	// till vertexshadern
+  // Uppgift 3 TODO: Här behöver du skicka över benens position
+  // till vertexshadern
 }
 
 
@@ -276,67 +316,67 @@ void setBoneLocation(void)
 // Desc:	sätter bone positionen i vertex shadern
 void DrawCylinder()
 {
-	animateBones();
+  animateBones();
 
-	// ---------=========	UPG 2 ===========---------
-	// Ersätt DeformCylinder med en vertex shader som gör vad DeformCylinder gör.
-	// Begynnelsen till shaderkoden ligger i filen "shader.vert" ...
-	
-	DeformCylinder();
-	
-	setBoneLocation();
-	setBoneRotation();
-	
-// update cylinder vertices:
-	glBindVertexArray(cylinderModel->vao);
-	glBindBuffer(GL_ARRAY_BUFFER, cylinderModel->vb);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Point3D)*kMaxRow*kMaxCorners, g_vertsRes, GL_DYNAMIC_DRAW);
-	
-	DrawModel(cylinderModel, g_shader, "in_Position", "in_Normal", "in_TexCoord");
+  // ---------=========	UPG 2 ===========---------
+  // Ersätt DeformCylinder med en vertex shader som gör vad DeformCylinder gör.
+  // Begynnelsen till shaderkoden ligger i filen "shader.vert" ...
+
+  DeformCylinder();
+
+  setBoneLocation();
+  setBoneRotation();
+
+  // update cylinder vertices:
+  glBindVertexArray(cylinderModel->vao);
+  glBindBuffer(GL_ARRAY_BUFFER, cylinderModel->vb);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Point3D)*kMaxRow*kMaxCorners, g_vertsRes, GL_DYNAMIC_DRAW);
+
+  DrawModel(cylinderModel, g_shader, "in_Position", "in_Normal", "in_TexCoord");
 }
 
 
 void DisplayWindow()
 {
-	mat4 m;
-	
-	glClearColor(0.4, 0.4, 0.2, 1);
-	glClear(GL_COLOR_BUFFER_BIT+GL_DEPTH_BUFFER_BIT);
+  mat4 m;
 
-    m = Mult(projectionMatrix, modelViewMatrix);
-    glUniformMatrix4fv(glGetUniformLocation(g_shader, "matrix"), 1, GL_TRUE, m.m);
-	
-	DrawCylinder();
+  glClearColor(0.4, 0.4, 0.2, 1);
+  glClear(GL_COLOR_BUFFER_BIT+GL_DEPTH_BUFFER_BIT);
 
-	glutSwapBuffers();
+  m = Mult(projectionMatrix, modelViewMatrix);
+  glUniformMatrix4fv(glGetUniformLocation(g_shader, "matrix"), 1, GL_TRUE, m.m);
+
+  DrawCylinder();
+
+  glutSwapBuffers();
 }
 
 
 void OnTimer(int value)
 {
-	glutPostRedisplay();
-	glutTimerFunc(20, &OnTimer, value);
+  glutPostRedisplay();
+  glutTimerFunc(20, &OnTimer, value);
 }
 
 void keyboardFunc( unsigned char key, int x, int y)
 {
-// Add any keyboard control you want here
-	if(key == 27)	//Esc
-		exit(1);
+  // Add any keyboard control you want here
+  if(key == 27)	//Esc
+    exit(1);
 }
 
 void reshape(GLsizei w, GLsizei h)
 {
-	Point3D cam = {5,0,8};
-	Point3D look = {5,0,0};
+  Point3D cam = {5,0,8};
+  Point3D look = {5,0,0};
 
-    glViewport(0, 0, w, h);
-    GLfloat ratio = (GLfloat) w / (GLfloat) h;
-    projectionMatrix = perspective(90, ratio, 0.1, 1000);
- //   glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix);
-	modelViewMatrix = lookAt(cam.x, cam.y, cam.z,
-											look.x, look.y, look.z, 
-											0,1,0);
+  glViewport(0, 0, w, h);
+  GLfloat ratio = (GLfloat) w / (GLfloat) h;
+  projectionMatrix = perspective(90, ratio, 0.1, 1000);
+  //   glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix);
+  modelViewMatrix = lookAt(cam.x, cam.y, cam.z,
+      look.x, look.y, look.z, 
+      0,1,0);
 }
 
 /////////////////////////////////////////
@@ -344,30 +384,30 @@ void reshape(GLsizei w, GLsizei h)
 //
 int main(int argc, char **argv)
 {
-	glutInit(&argc, argv);
+  glutInit(&argc, argv);
 
-	glutInitWindowSize(512, 512);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitContextVersion(3, 2); // Might not be needed in Linux
-	glutCreateWindow("Them bones");
+  glutInitWindowSize(512, 512);
+  glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+  glutInitContextVersion(3, 2); // Might not be needed in Linux
+  glutCreateWindow("Them bones");
 
-	glutDisplayFunc(DisplayWindow);
-	glutTimerFunc(20, &OnTimer, 0);
-	glutKeyboardFunc( keyboardFunc ); 
-	glutReshapeFunc(reshape);
+  glutDisplayFunc(DisplayWindow);
+  glutTimerFunc(20, &OnTimer, 0);
+  glutKeyboardFunc( keyboardFunc ); 
+  glutReshapeFunc(reshape);
 
-	// Set up depth buffer
-	glEnable(GL_DEPTH_TEST);
+  // Set up depth buffer
+  glEnable(GL_DEPTH_TEST);
 
-	// initiering
+  // initiering
 #ifdef WIN32
-	glewInit();
+  glewInit();
 #endif
-	BuildCylinder();
-	setupBones();
-	g_shader = loadShaders("shader.vert" , "shader.frag");
+  BuildCylinder();
+  setupBones();
+  g_shader = loadShaders("shader.vert" , "shader.frag");
 
-	glutMainLoop();
+  glutMainLoop();
 
-	return 0;
+  return 0;
 }
