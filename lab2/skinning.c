@@ -136,8 +136,11 @@ void BuildCylinder()
 		{
 			g_vertsRes[row][corner] = g_vertsOrg[row][corner];
 			g_normalsRes[row][corner] = g_normalsOrg[row][corner];
-			g_vertstex[row][corner][0]=(1-weight[row]);
-			g_vertstex[row][corner][1]=weight[row];
+			//g_vertstex[row][corner][0]=(1-g_boneWeights[row]);
+			//g_vertstex[row][corner][1]=weight[row];
+
+			g_vertstex[row][corner][0] = (1.0f-((float)row/kMaxRow));
+			g_vertstex[row][corner][1] = ((float)row/kMaxRow);
 		}
 	
 	// Build Model from cylinder data
@@ -298,6 +301,9 @@ void setBoneRotation(void)
 {
   // Uppgift 3 TODO: Här behöver du skicka över benens rotation
   // till vertexshadern
+  glUniformMatrix4fv(glGetUniformLocation(g_shader, "rotBoneOne"), 1, GL_TRUE, g_bones[0].rot.m);
+  glUniformMatrix4fv(glGetUniformLocation(g_shader, "rotBoneTwo"), 1, GL_TRUE, g_bones[1].rot.m);
+
 }
 
 
@@ -308,6 +314,10 @@ void setBoneLocation(void)
 {
   // Uppgift 3 TODO: Här behöver du skicka över benens position
   // till vertexshadern
+  mat4 bone1 = T(g_bones[0].pos.x, g_bones[0].pos.y, g_bones[0].pos.z);
+  mat4 bone2 = T(g_bones[1].pos.x, g_bones[1].pos.y, g_bones[1].pos.z);
+  glUniformMatrix4fv(glGetUniformLocation(g_shader, "posBoneOne"), 1, GL_TRUE,  bone1.m);
+  glUniformMatrix4fv(glGetUniformLocation(g_shader, "posBoneTwo"), 1, GL_TRUE,  bone2.m);
 }
 
 
@@ -322,7 +332,7 @@ void DrawCylinder()
   // Ersätt DeformCylinder med en vertex shader som gör vad DeformCylinder gör.
   // Begynnelsen till shaderkoden ligger i filen "shader.vert" ...
 
-  DeformCylinder();
+  //DeformCylinder();
 
   setBoneLocation();
   setBoneRotation();
