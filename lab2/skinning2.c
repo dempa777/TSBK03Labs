@@ -236,6 +236,8 @@ void setupBones(void)
 }
 
 
+vec3 m;
+
 ///////////////////////////////////////////////////////
 //		D E F O R M  C Y L I N D E R 
 //
@@ -247,36 +249,113 @@ void DeformCylinder()
   //float w[kMaxBones];
   int row, corner, bone, parents;
 
-  mat4 m[kMaxBones];
 
   vec3 total;
 
-  vec3 pos = g_bonesRes[0].pos; 
-  m[0] = Mult(T(pos.x, pos.y, pos.z), g_bonesRes[0].rot); 
-  for (bone = 1; bone < kMaxBones; bone++)   
-  {
-    pos = g_bonesRes[bone].pos;
-    m[bone] = Mult(Mult(T(pos.x, pos.y, pos.z), g_bonesRes[bone].rot),m[bone-1]);
-  }
+//  vec3 pos = g_bonesRes[0].pos; 
+ // m[0] = Mult(T(pos.x, pos.y, pos.z), g_bonesRes[0].rot); 
+ // for (bone = 1; bone < kMaxBones; bone++)   
+  //{
+ //   pos = g_bonesRes[bone].pos;
+  //  m[bone] = Mult(Mult(T(pos.x, pos.y, pos.z), g_bonesRes[bone].rot),m[bone-1]);
+  //}
+
+vec3 m1, m2, m3, m4, m5, pos, leftBonePos;
 
   // för samtliga vertexar 
   for (row = 0; row < kMaxRow; row++)
   {
     for (corner = 0; corner < kMaxCorners; corner++)
     {
+//bone 1
+        pos = g_bonesRes[0].pos;
+	m =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+	updateMForBone(0);
+	m1 = m;
+//bone 2
+        pos = g_bonesRes[1].pos;
+	m =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+	updateMForBone(1);
+	updateMForBone(0);
+	m2 = m;
+//bone 3
+        pos = g_bonesRes[2].pos;
+	m =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+	updateMForBone(2);
+	updateMForBone(1);
+	updateMForBone(0);
+	m3 = m;
+//bone 4
+        pos = g_bonesRes[3].pos;
+	m =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+	updateMForBone(3);
+	updateMForBone(2);
+	updateMForBone(1);
+	updateMForBone(0);
+	m4 = m;
+//bone 5
+        pos = g_bonesRes[4].pos;
+	m =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+	updateMForBone(4);
+	updateMForBone(3);
+	updateMForBone(2);
+	updateMForBone(1);
+	updateMForBone(0);
+	m5 = m;
+	
+	
+/*
+//m1 bone 1
+        pos = g_bonesRes[0].pos;
+	m1 = MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[0].rot, MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner])));
+	
+//m2
+        pos = g_bonesRes[1].pos;
+	m2 =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+//m2 bone 2
+        pos = g_bonesRes[1].pos;
+	m2 = MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[1].rot, m2));
+//m2 bone 1
+	pos = g_bonesRes[0].pos;
+	m2 = MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[0].rot, m2));
+    
+//m3
+	pos = g_bonesRes[2].pos;
+	m3 =  MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner]);
+//m3 bone 3
+	pos = g_bonesRes[2].pos;
+	leftBonePos = g_bonesRes[1].pos;
+	m3 = MultVec3(T(-leftBonePos.x, -leftBonePos.y, -leftBonePos.z), MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[2].rot, m3)));
+//m3 bone 2
+	pos = g_bonesRes[1].pos;
+	leftBonePos = g_bonesRes[0].pos;
+	m3 = MultVec3(T(-leftBonePos.x, -leftBonePos.y, -leftBonePos.z), MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[1].rot, m3)));
+//m3 bone 1
+	pos = g_bonesRes[0].pos;
+	leftBonePos.x = 0.0f;
+	leftBonePos.y = 0.0f;
+	leftBonePos.z = 0.0f;
+	m3 = MultVec3(T(-leftBonePos.x, -leftBonePos.y, -leftBonePos.z), MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[0].rot, m3)));
+*/
+	
 
-
-      for( bone = 0; bone < kMaxBones; bone++){     
+ //for( bone = 0; bone < kMaxBones; bone++){     
         
-        vec3 pos = g_bonesRes[bone].pos;
+     //   vec3 pos = g_bonesRes[bone].pos;
 
-        total = VectorAdd(total, ScalarMult(MultVec3(m[bone], MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner])), g_boneWeights[row][corner][bone]));
+       // total = VectorAdd(total, ScalarMult(MultVec3(m[bone], MultVec3(T(-pos.x, -pos.y, -pos.z), g_vertsOrg[row][corner])), g_boneWeights[row][corner][bone]));
         
 
         //g_vertsRes[row][corner] = MultVec3(T(pos.x, pos.y, pos.z),MultVec3(g_bonesRes[bone].rot, MultVec3(T(-pos.x, -pos.y, -pos.z),g_vertsOrg[row][corner])));
 
-      }
-      g_vertsRes[row][corner] = total;
+      //}
+//m1*w1 + m2*w2 + m3*w3 + m4*w4 + m5*w5
+	g_vertsRes[row][corner] = ScalarMult(m1, g_boneWeights[row][corner][0]);
+	g_vertsRes[row][corner] = VectorAdd(g_vertsRes[row][corner], ScalarMult(m2, g_boneWeights[row][corner][1]));
+	g_vertsRes[row][corner] = VectorAdd(g_vertsRes[row][corner], ScalarMult(m3, g_boneWeights[row][corner][2]));
+	g_vertsRes[row][corner] = VectorAdd(g_vertsRes[row][corner], ScalarMult(m4, g_boneWeights[row][corner][3]));
+	g_vertsRes[row][corner] = VectorAdd(g_vertsRes[row][corner], ScalarMult(m5, g_boneWeights[row][corner][4]));
+      //g_vertsRes[row][corner] = VectorAdd(VectorAdd(ScalarMult(m1, g_boneWeights[row][corner][0]), ScalarMult(m2, g_boneWeights[row][corner][1])), ScalarMult(m3, g_boneWeights[row][corner][2]));
       // data som du kan använda:
       // g_bonesRes[].rot
       // g_bones[].pos
@@ -288,6 +367,18 @@ void DeformCylinder()
   }
 }
 
+void updateMForBone(int bone) {
+	vec3 pos = g_bonesRes[bone].pos;
+	vec3 leftBonePos;
+	if(bone == 0) {
+		leftBonePos.x = 0.0f;
+		leftBonePos.y = 0.0f;
+		leftBonePos.z = 0.0f;
+	} else {
+		leftBonePos = g_bonesRes[bone - 1].pos;
+	}
+	m = MultVec3(T(-leftBonePos.x, -leftBonePos.y, -leftBonePos.z), MultVec3(T(pos.x, pos.y, pos.z), MultVec3(g_bonesRes[bone].rot, m)));
+}
 
 /////////////////////////////////////////////
 //		A N I M A T E  B O N E S
