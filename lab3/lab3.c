@@ -159,6 +159,14 @@ void loadMaterial(Material mt)
 }
 
 //---------------------------------- physics update and billiard table rendering ----------------------------------
+
+bool collide(vec3 ball1, vec3 ball2){
+  vec3 distance = VectorSub(ball1, ball2);
+  GLfloat norm = sqrt(distance.x * distance.x + distance.y * distance.y + distance.z * distance.z);
+  return norm < 2*kBallSize;
+
+}
+
 void updateWorld()
 {
 	// Zero forces
@@ -183,10 +191,24 @@ void updateWorld()
 	}
 
 	// Detect collisions, calculate speed differences, apply forces
+  vec3 vRel, normal;
+  vRel.x = 1;
+  float J, eps;
+  eps = 0.7;
 	for (i = 0; i < kNumBalls; i++)
         for (j = i+1; j < kNumBalls; j++)
         {
-            // YOUR CODE HERE
+            if(collide(ball[i].X, ball[j].X)){
+              
+              vRel = VectorSub(ball[i].P, ball[j].P);
+              normal = Normalize(vRel);
+
+              J = DotProduct(vRel, normal)*(-(eps + 1));
+
+              J = J/(1/ball[i].mass+1/ball[j].mass);
+              ball[i].F = VectorAdd(ball[i].F, ScalarMult(normal, J));
+
+            }
         }
 
 	// Control rotation here to reflect
