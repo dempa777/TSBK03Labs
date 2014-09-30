@@ -103,7 +103,7 @@ Material ballMt = { { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 0.0 },
                 };
 
 
-enum {kNumBalls = 16}; // Change as desired, max 16
+enum {kNumBalls = 4}; // Change as desired, max 16
 
 //------------------------------Globals---------------------------------
 ModelTexturePair tableAndLegs, tableSurf;
@@ -160,11 +160,10 @@ void loadMaterial(Material mt)
 
 //---------------------------------- physics update and billiard table rendering ----------------------------------
 
-bool collide(vec3 ball1, vec3 ball2){
+float getDistance(vec3 ball1, vec3 ball2){
   vec3 distance = VectorSub(ball1, ball2);
   GLfloat norm = sqrt(distance.x * distance.x + distance.y * distance.y + distance.z * distance.z);
-  return norm < 2*kBallSize;
-
+  return norm;
 }
 
 void updateWorld()
@@ -191,234 +190,288 @@ void updateWorld()
 	}
 
 	// Detect collisions, calculate speed differences, apply forces
-  vec3 vRel, normal;
-  vRel.x = 1;
-  float J, eps;
-  eps = 0.7;
-	for (i = 0; i < kNumBalls; i++)
-        for (j = i+1; j < kNumBalls; j++)
-        {
-            if(collide(ball[i].X, ball[j].X)){
-              
-              vRel = VectorSub(ball[i].P, ball[j].P);
-              normal = Normalize(vRel);
+  vec3 normal, vpa, vpb, ra, rb;
+  float diff, J, eps, distance, vRel;
+  eps = 1.0;
+  for (i = 0; i < kNumBalls; i++)
+    for (j = i+1; j < kNumBalls; j++)
+    {
+      distance = getDistance(ball[i].X, ball[j].X);
 
-              J = DotProduct(vRel, normal)*(-(eps + 1));
+      if(distance < 2*kBallSize){
+     
+        
+        
+        //ra = ScalarMult(Normalize(VectorSub(ball[j].X, ball[i].X)), kBallSize);
+        //printf("ra: %f, %f, %f \n", ra.x, ra.y, ra.z);
+        
+       // printf("vpa: %f, %f, %f \n", vpa.x, vpa.y, vpa.z);
+     
+        //printf("%li \n", j);
 
-              J = J/(1/ball[i].mass+1/ball[j].mass);
-              ball[i].F = VectorAdd(ball[i].F, ScalarMult(normal, J));
+        //rb = ScalarMult(ra, -1.0);//Normalize(VectorSub(ball[i].X, ball[j].X)), kBallSize);
+        
+        //printf("rb: %f, %f, %f \n", rb.x, rb.y, rb.z);
+        
+        //diff = distance - 2*kBallSize;
 
-            }
+        //printf("diff: %f \n", diff);
+
+
+
+        //ball[j].X = VectorAdd(ball[j].X, ScalarMult(rb, -0.5));//2.0*());
+
+        ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
+        
+        ra = ScalarMult(Normalize(VectorSub(ball[j].X, ball[i].X)), kBallSize);
+        vpa = VectorAdd(ball[i].v, CrossProduct(ball[i].omega, ra));
+        
+        rb = ScalarMult(Normalize(VectorSub(ball[i].X, ball[j].X)), kBallSize);
+        vpb = VectorAdd(ball[j].v, CrossProduct(ball[j].omega, rb));
+        
+        
+        //printf("vpb: %f, %f, %f \n", vpb.x, vpb.y, vpb.z);
+       
+        normal = Normalize(VectorSub(ball[i].X, ball[j].X));
+        
+        vRel = DotProduct(VectorSub(vpa, vpb), normal);
+
+        vRel = DotProduct(VectorSub(ball[i].v, ball[j].v), normal);
+
+        printf("%f \n", vRel);
+        if(vRel < 0.0) {
+          
+        
+
+        /*
+        normal = Normalize(VectorSub(ball[i].X, ball[j].X));
+        vRel = DotProduct(VectorSub(ball[i].v, ball[j].v), normal);
+*/
+        J = -vRel*(eps + 1.0)/(1.0/ball[i].mass+1.0/ball[j].mass);
+        ball[i].F = VectorAdd(ball[i].F, ScalarMult(VectorAdd(ball[i].F, ScalarMult(normal, J)), 1.0/deltaT));
+
+        ball[j].F = VectorAdd(ball[j].F, ScalarMult(VectorAdd(ball[j].F, ScalarMult(normal, -J)), 1.0/deltaT));
+
         }
 
-	// Control rotation here to reflect
-	// friction against floor, simplified as well as more correct
+
+      }
+    }
+
+  // Control rotation here to reflect
+  // friction against floor, simplified as well as more correct
   vec3 axis;
   vec3 yAxis;
   GLfloat norm;
   yAxis.y = 1.0;
-	for (i = 0; i < kNumBalls; i++)
-	{
-    norm = sqrt(ball[i].P.x * ball[i].P.x + ball[i].P.y * ball[i].P.y + ball[i].P.z * ball[i].P.z);
-    axis = Normalize(CrossProduct(yAxis, ball[i].P)); 
-    ball[i].R = Mult(ArbRotate(axis, norm/9.0), ball[i].R);
-		// YOUR CODE HERE
-	}
+  float len;
+  for (i = 0; i < kNumBalls; i++)
+  {
+    if(abs(ball[i].v.x) > 0 || abs(ball[i].v.z) > 0) {
+      axis = Normalize(CrossProduct(yAxis, ball[i].v)); 
+      len = sqrt(ball[i].v.x*ball[i].v.x + ball[i].v.y*ball[i].v.y + ball[i].v.z*ball[i].v.z)/9.0;
+      ball[i].omega  = ScalarMult(axis, len);
+      ball[i].R = Mult(ball[i].R,ArbRotate(axis, len));
+        //printf("%f \n", len);
+      //printf("%f, %f, %f \n", ball[i].v.x, ball[i].v.y, ball[i].v.z); 
+      // YOUR CODE HERE
+    }
+  }
 
-// Update state, follows the book closely
-	for (i = 0; i < kNumBalls; i++)
-	{
-		vec3 dX, dP, dL, dO;
-		mat4 Rd;
+  // Update state, follows the book closely
+  for (i = 0; i < kNumBalls; i++)
+  {
+    vec3 dX, dP, dL, dO;
+    mat4 Rd;
 
-		// Note: omega is not set. How do you calculate it?
-		// YOUR CODE HERE
+    // Note: omega is not set. How do you calculate it?
+    // YOUR CODE HERE
 
-//		v := P * 1/mass
-		ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
-//		X := X + v*dT
-		dX = ScalarMult(ball[i].v, deltaT); // dX := v*dT
-		ball[i].X = VectorAdd(ball[i].X, dX); // X := X + dX
-//		R := R + Rd*dT
-		dO = ScalarMult(ball[i].omega, deltaT); // dO := omega*dT
-		Rd = CrossMatrix(dO); // Calc dO, add to R
-		Rd = Mult(Rd, ball[i].R); // Rotate the diff (NOTE: This was missing in early versions.)
-		ball[i].R = MatrixAdd(ball[i].R, Rd);
-//		P := P + F * dT
-		dP = ScalarMult(ball[i].F, deltaT); // dP := F*dT
-		ball[i].P = VectorAdd(ball[i].P, dP); // P := P + dP
-//		L := L + t * dT
-		dL = ScalarMult(ball[i].T, deltaT); // dL := T*dT
-		ball[i].L = VectorAdd(ball[i].L, dL); // L := L + dL
+    //		v := P * 1/mass
+    ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
+    //		X := X + v*dT
+    dX = ScalarMult(ball[i].v, deltaT); // dX := v*dT
+    ball[i].X = VectorAdd(ball[i].X, dX); // X := X + dX
+    //		R := R + Rd*dT
+    dO = ScalarMult(ball[i].omega, deltaT); // dO := omega*dT
+    Rd = CrossMatrix(dO); // Calc dO, add to R
+    Rd = Mult(Rd, ball[i].R); // Rotate the diff (NOTE: This was missing in early versions.)
+    ball[i].R = MatrixAdd(ball[i].R, Rd);
+    //		P := P + F * dT
+    dP = ScalarMult(ball[i].F, deltaT); // dP := F*dT
+    ball[i].P = VectorAdd(ball[i].P, dP); // P := P + dP
+    //		L := L + t * dT
+    dL = ScalarMult(ball[i].T, deltaT); // dL := T*dT
+    ball[i].L = VectorAdd(ball[i].L, dL); // L := L + dL
 
-		OrthoNormalizeMatrix(&ball[i].R);
-	}
+    OrthoNormalizeMatrix(&ball[i].R);
+  }
 }
 
 void renderBall(int ballNr)
 {
-    glBindTexture(GL_TEXTURE_2D, ball[ballNr].tex);
+  glBindTexture(GL_TEXTURE_2D, ball[ballNr].tex);
 
-    // Ball with rotation
-    transMatrix = T(ball[ballNr].X.x, kBallSize, ball[ballNr].X.z); // position
-    tmpMatrix = Mult(transMatrix, ball[ballNr].R); // ball rotation
-    tmpMatrix = Mult(viewMatrix, tmpMatrix);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, tmpMatrix.m);
-    loadMaterial(ballMt);
-    DrawModel(sphere, shader, "in_Position", "in_Normal", NULL);
+  // Ball with rotation
+  transMatrix = T(ball[ballNr].X.x, kBallSize, ball[ballNr].X.z); // position
+  tmpMatrix = Mult(transMatrix, ball[ballNr].R); // ball rotation
+  tmpMatrix = Mult(viewMatrix, tmpMatrix);
+  glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, tmpMatrix.m);
+  loadMaterial(ballMt);
+  DrawModel(sphere, shader, "in_Position", "in_Normal", NULL);
 
-    // Simple shadow
-    glBindTexture(GL_TEXTURE_2D, 0);
+  // Simple shadow
+  glBindTexture(GL_TEXTURE_2D, 0);
 
-    tmpMatrix = S(1.0, 0.0, 1.0);
-    tmpMatrix = Mult(tmpMatrix, transMatrix);
-    tmpMatrix = Mult(tmpMatrix, ball[ballNr].R);
-    tmpMatrix = Mult(viewMatrix, tmpMatrix);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, tmpMatrix.m);
-    loadMaterial(shadowMt);
-    DrawModel(sphere, shader, "in_Position", "in_Normal", NULL);
+  tmpMatrix = S(1.0, 0.0, 1.0);
+  tmpMatrix = Mult(tmpMatrix, transMatrix);
+  tmpMatrix = Mult(tmpMatrix, ball[ballNr].R);
+  tmpMatrix = Mult(viewMatrix, tmpMatrix);
+  glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, tmpMatrix.m);
+  loadMaterial(shadowMt);
+  DrawModel(sphere, shader, "in_Position", "in_Normal", NULL);
 }
 
 void renderTable()
 {
-// Frame and legs, brown, no texture
-    loadMaterial(tableMt);
-    printError("loading material");
-    renderModelTexturePair(&tableAndLegs);
+  // Frame and legs, brown, no texture
+  loadMaterial(tableMt);
+  printError("loading material");
+  renderModelTexturePair(&tableAndLegs);
 
-// Table surface (green texture)
-    loadMaterial(tableSurfaceMt);
-    renderModelTexturePair(&tableSurf);
+  // Table surface (green texture)
+  loadMaterial(tableSurfaceMt);
+  renderModelTexturePair(&tableSurf);
 }
 //-------------------------------------------------------------------------------------
 
 void init()
 {
-	dumpInfo();  // shader info
+  dumpInfo();  // shader info
 
-	// GL inits
-	glClearColor(0.1, 0.1, 0.3, 0);
-	glClearDepth(1.0);
+  // GL inits
+  glClearColor(0.1, 0.1, 0.3, 0);
+  glClearDepth(1.0);
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    printError("GL inits");
+  printError("GL inits");
 
-    // Load shader
-    shader = loadShaders("lab3.vert", "lab3.frag");
-    printError("init shader");
+  // Load shader
+  shader = loadShaders("lab3.vert", "lab3.frag");
+  printError("init shader");
 
-    loadModelTexturePair(&tableAndLegs, "tableandlegsnosurf.obj", 0);
-    loadModelTexturePair(&tableSurf, "tablesurf.obj", "surface.tga");
-    sphere = LoadModelPlus("sphere.obj");
+  loadModelTexturePair(&tableAndLegs, "tableandlegsnosurf.obj", 0);
+  loadModelTexturePair(&tableSurf, "tablesurf.obj", "surface.tga");
+  sphere = LoadModelPlus("sphere.obj");
 
-    projectionMatrix = perspective(90, 1.0, 0.1, 1000); // It would be silly to upload an uninitialized matrix
-    glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+  projectionMatrix = perspective(90, 1.0, 0.1, 1000); // It would be silly to upload an uninitialized matrix
+  glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 
-    char *textureStr = malloc(128);
-    int i;
-    for(i = 0; i < kNumBalls; i++)
-    {
-        sprintf(textureStr, "balls/%d.tga", i);
-        LoadTGATextureSimple(textureStr, &ball[i].tex);
-    }
-	free(textureStr);
+  char *textureStr = malloc(128);
+  int i;
+  for(i = 0; i < kNumBalls; i++)
+  {
+    sprintf(textureStr, "balls/%d.tga", i);
+    LoadTGATextureSimple(textureStr, &ball[i].tex);
+  }
+  free(textureStr);
 
-    // Initialize ball data, positions etc
-	for (i = 0; i < kNumBalls; i++)
-	{
-		ball[i].mass = 1.0;
-		ball[i].X = SetVector(0.0, 0.0, 0.0);
-		ball[i].P = SetVector(((float)(i % 13))/ 50.0, 0.0, ((float)(i % 15))/50.0);
-		ball[i].R = IdentityMatrix();
-	}
-	ball[0].X = SetVector(0, 0, 0);
-	ball[1].X = SetVector(0, 0, 0.5);
-	ball[2].X = SetVector(0.0, 0, 1.0);
-	ball[3].X = SetVector(0, 0, 1.5);
-	ball[0].P = SetVector(0, 0, 0);
-	ball[1].P = SetVector(0, 0, 0);
-	ball[2].P = SetVector(0, 0, 0);
-	ball[3].P = SetVector(0, 0, 1.00);
+  // Initialize ball data, positions etc
+  for (i = 0; i < kNumBalls; i++)
+  {
+    ball[i].mass = 1.0;
+    ball[i].X = SetVector(0.0, 0.0, 0.0);
+    ball[i].P = SetVector(((float)(i % 13))/ 50.0, 0.0, ((float)(i % 15))/50.0);
+    ball[i].R = IdentityMatrix();
+  }
+  ball[0].X = SetVector(0, 0, 0);
+  ball[1].X = SetVector(0, 0, 0.5);
+  ball[2].X = SetVector(0.0, 0, 1.0);
+  ball[3].X = SetVector(0, 0, 1.5);
+  ball[0].P = SetVector(0, 0, 0);
+  ball[1].P = SetVector(0, 0, 0);
+  ball[2].P = SetVector(0, 0, 0);
+  ball[3].P = SetVector(0, 0, 1.00);
 
-    cam = SetVector(0, 2, 2);
-    point = SetVector(0, 0, 0);
-    zprInit(&viewMatrix, cam, point);  // camera controls
+  cam = SetVector(0, 2, 2);
+  point = SetVector(0, 0, 0);
+  zprInit(&viewMatrix, cam, point);  // camera controls
 
-    resetElapsedTime();
+  resetElapsedTime();
 }
 
 //-------------------------------callback functions------------------------------------------
 void display(void)
 {
-	int i;
-    // This function is called whenever it is time to render
-    //  a new frame; due to the idle()-function below, this
-    //  function will get called several times per second
-    updateWorld();
+  int i;
+  // This function is called whenever it is time to render
+  //  a new frame; due to the idle()-function below, this
+  //  function will get called several times per second
+  updateWorld();
 
-    // Clear framebuffer & zbuffer
-	glClearColor(0.1, 0.1, 0.3, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // Clear framebuffer & zbuffer
+  glClearColor(0.1, 0.1, 0.3, 0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//    int time = glutGet(GLUT_ELAPSED_TIME);
+  //    int time = glutGet(GLUT_ELAPSED_TIME);
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, viewMatrix.m);
+  glUniformMatrix4fv(glGetUniformLocation(shader, "viewMatrix"), 1, GL_TRUE, viewMatrix.m);
 
-    printError("uploading to shader");
+  printError("uploading to shader");
 
-    renderTable();
+  renderTable();
 
-	for (i = 0; i < kNumBalls; i++)
-        renderBall(i);
+  for (i = 0; i < kNumBalls; i++)
+    renderBall(i);
 
-    printError("rendering");
+  printError("rendering");
 
-	glutSwapBuffers();
+  glutSwapBuffers();
 }
 
 void onTimer(int value)
 {
-    glutPostRedisplay();
-    deltaT = getElapsedTime() - currentTime;
-    currentTime = getElapsedTime();
-    glutTimerFunc(20, &onTimer, value);
+  glutPostRedisplay();
+  deltaT = getElapsedTime() - currentTime;
+  currentTime = getElapsedTime();
+  glutTimerFunc(20, &onTimer, value);
 }
 
 void reshape(GLsizei w, GLsizei h)
 {
-	lastw = w;
-	lasth = h;
+  lastw = w;
+  lasth = h;
 
-    glViewport(0, 0, w, h);
-    GLfloat ratio = (GLfloat) w / (GLfloat) h;
-    projectionMatrix = perspective(90, ratio, 0.1, 1000);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+  glViewport(0, 0, w, h);
+  GLfloat ratio = (GLfloat) w / (GLfloat) h;
+  projectionMatrix = perspective(90, ratio, 0.1, 1000);
+  glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 }
 
 //-----------------------------main-----------------------------------------------
 int main(int argc, char **argv)
 {
-	glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-    glutInitWindowSize(W, H);
-	glutInitContextVersion(3, 2);
-	glutCreateWindow ("Biljardbordet");
-	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
-    glutTimerFunc(20, &onTimer, 0);
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+  glutInitWindowSize(W, H);
+  glutInitContextVersion(3, 2);
+  glutCreateWindow ("Biljardbordet");
+  glutDisplayFunc(display);
+  glutReshapeFunc(reshape);
+  glutTimerFunc(20, &onTimer, 0);
 
-	init();
+  init();
 
-	glutMainLoop();
-	exit(0);
+  glutMainLoop();
+  exit(0);
 }
