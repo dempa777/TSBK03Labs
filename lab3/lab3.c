@@ -191,8 +191,15 @@ void updateWorld()
 
 	// Control rotation here to reflect
 	// friction against floor, simplified as well as more correct
+  vec3 axis;
+  vec3 yAxis;
+  GLfloat norm;
+  yAxis.y = 1.0;
 	for (i = 0; i < kNumBalls; i++)
 	{
+    norm = sqrt(ball[i].P.x * ball[i].P.x + ball[i].P.y * ball[i].P.y + ball[i].P.z * ball[i].P.z);
+    axis = Normalize(CrossProduct(yAxis, ball[i].P)); 
+    ball[i].R = Mult(ArbRotate(axis, norm/9.0), ball[i].R);
 		// YOUR CODE HERE
 	}
 
