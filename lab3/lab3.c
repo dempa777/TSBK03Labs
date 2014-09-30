@@ -103,7 +103,7 @@ Material ballMt = { { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 0.0 },
                 };
 
 
-enum {kNumBalls = 4}; // Change as desired, max 16
+  enum {kNumBalls = 16}; // Change as desired, max 16
 
 //------------------------------Globals---------------------------------
 ModelTexturePair tableAndLegs, tableSurf;
@@ -190,9 +190,9 @@ void updateWorld()
 	}
 
 	// Detect collisions, calculate speed differences, apply forces
-  vec3 normal, vpa, vpb, ra, rb;
+  vec3 normal;
   float diff, J, eps, distance, vRel;
-  eps = 1.0;
+  eps = 0.5;
   for (i = 0; i < kNumBalls; i++)
     for (j = i+1; j < kNumBalls; j++)
     {
@@ -222,36 +222,15 @@ void updateWorld()
         //ball[j].X = VectorAdd(ball[j].X, ScalarMult(rb, -0.5));//2.0*());
 
         ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
-        
-        ra = ScalarMult(Normalize(VectorSub(ball[j].X, ball[i].X)), kBallSize);
-        vpa = VectorAdd(ball[i].v, CrossProduct(ball[i].omega, ra));
-        
-        rb = ScalarMult(Normalize(VectorSub(ball[i].X, ball[j].X)), kBallSize);
-        vpb = VectorAdd(ball[j].v, CrossProduct(ball[j].omega, rb));
-        
-        
-        //printf("vpb: %f, %f, %f \n", vpb.x, vpb.y, vpb.z);
+   
+        normal = Normalize(VectorSub(ball[i].X, ball[j].X));
        
-        normal = Normalize(VectorSub(ball[i].X, ball[j].X));
-        
-        vRel = DotProduct(VectorSub(vpa, vpb), normal);
-
         vRel = DotProduct(VectorSub(ball[i].v, ball[j].v), normal);
 
-        printf("%f \n", vRel);
         if(vRel < 0.0) {
-          
-        
-
-        /*
-        normal = Normalize(VectorSub(ball[i].X, ball[j].X));
-        vRel = DotProduct(VectorSub(ball[i].v, ball[j].v), normal);
-*/
-        J = -vRel*(eps + 1.0)/(1.0/ball[i].mass+1.0/ball[j].mass);
-        ball[i].F = VectorAdd(ball[i].F, ScalarMult(VectorAdd(ball[i].F, ScalarMult(normal, J)), 1.0/deltaT));
-
-        ball[j].F = VectorAdd(ball[j].F, ScalarMult(VectorAdd(ball[j].F, ScalarMult(normal, -J)), 1.0/deltaT));
-
+          J = -vRel*(eps + 1.0)/(1.0/ball[i].mass+1.0/ball[j].mass);
+          ball[i].F = VectorAdd(ball[i].F, ScalarMult(VectorAdd(ball[i].F, ScalarMult(normal, J)), 1.0/deltaT));
+          ball[j].F = VectorAdd(ball[j].F, ScalarMult(VectorAdd(ball[j].F, ScalarMult(normal, -J)), 1.0/deltaT));
         }
 
 
@@ -271,7 +250,7 @@ void updateWorld()
       axis = Normalize(CrossProduct(yAxis, ball[i].v)); 
       len = sqrt(ball[i].v.x*ball[i].v.x + ball[i].v.y*ball[i].v.y + ball[i].v.z*ball[i].v.z)/9.0;
       ball[i].omega  = ScalarMult(axis, len);
-      ball[i].R = Mult(ball[i].R,ArbRotate(axis, len));
+      ball[i].R = Mult(ArbRotate(axis, len), ball[i].R);
         //printf("%f \n", len);
       //printf("%f, %f, %f \n", ball[i].v.x, ball[i].v.y, ball[i].v.z); 
       // YOUR CODE HERE
@@ -386,7 +365,7 @@ void init()
   for (i = 0; i < kNumBalls; i++)
   {
     ball[i].mass = 1.0;
-    ball[i].X = SetVector(0.0, 0.0, 0.0);
+    ball[i].X = SetVector(0.1*i - 0.5, 0.0, 0.2*i - 1.5);
     ball[i].P = SetVector(((float)(i % 13))/ 50.0, 0.0, ((float)(i % 15))/50.0);
     ball[i].R = IdentityMatrix();
   }
@@ -398,6 +377,7 @@ void init()
   ball[1].P = SetVector(0, 0, 0);
   ball[2].P = SetVector(0, 0, 0);
   ball[3].P = SetVector(0, 0, 1.00);
+
 
   cam = SetVector(0, 2, 2);
   point = SetVector(0, 0, 0);
