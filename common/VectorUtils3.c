@@ -877,3 +877,7 @@ mat4 InvertMat4(mat4 a)
 	b.m[15]=(k*u-l*B+o*A)*q;
 	return b;
 };
+
+float Length(vec3 v){
+  return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+}

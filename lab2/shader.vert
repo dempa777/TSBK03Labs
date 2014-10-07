@@ -20,7 +20,7 @@ const vec3 lightDir = normalize(vec3(0.3, 0.5, 1.0));
 
 void main(void)
 {
-  /*
+  
   mat4 minusTransBoneOne = posBoneOne;
   minusTransBoneOne[3].x = -minusTransBoneOne[3].x;
   minusTransBoneOne[3].y = -minusTransBoneOne[3].y;
@@ -33,11 +33,10 @@ void main(void)
   vec4 bone1 = posBoneOne*rotBoneOne*minusTransBoneOne*vec4(in_Position, 1.0);
   vec4 bone2 = posBoneTwo*rotBoneTwo*minusTransBoneTwo*vec4(in_Position, 1.0);
 
-  vec4 result = in_TexCoord.x*bone1 + in_TexCoord.y*bone2;*/
+  vec4 result = in_TexCoord.x*bone1 + in_TexCoord.y*bone2;
 // transformera resultatet med ModelView- och Projection-matriserna
-	//gl_Position = matrix * result;
+	gl_Position = matrix * result;
 
-gl_Position = matrix * vec4(in_Position, 1.0);
 
 	// sätt röd+grön färgkanal till vertex Weights
 	vec4 color = vec4(in_TexCoord.x, in_TexCoord.y, 0.0, 1.0);
