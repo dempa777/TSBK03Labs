@@ -1,5 +1,5 @@
-// SpriteLight - Heavily simplified sprite engine
-// by Ingemar Ragnemalm 2009
+  // SpriteLight - Heavily simplified sprite engine
+  // by Ingemar Ragnemalm 2009
 // Converted to OpenGL 3.2+ 2013.
 
 // What does a mogwai say when it sees a can of soda?
@@ -42,7 +42,7 @@ TextureData *GetFace(char *fileName)
 	return fp;
 }
 
-struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GLfloat vs)
+struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GLfloat vs, bool isBusig)
 {
 	SpritePtr sp;
 	
@@ -57,6 +57,7 @@ struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GL
 	sp->speed.v = vs;
 	sp->face = f;
 	sp->rotation = 0;
+  sp->busig = isBusig;
 	return sp;
 }
 

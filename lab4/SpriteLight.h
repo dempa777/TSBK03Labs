@@ -26,8 +26,10 @@ typedef struct SpriteRec
 	FPoint speed;
 	GLfloat rotation;
 	struct SpriteRec *next;
-	
-	// Add custom sprite data here as needed
+  bool busig;	
+  GLfloat busV;
+  GLfloat busH;
+  // Add custom sprite data here as needed
 } SpriteRec, *SpritePtr;
 
 // Globals: The sprite list, background texture and viewport dimensions (virtual or real pixels)
@@ -37,7 +39,7 @@ extern long gWidth, gHeight;
 
 // Functions
 TextureData *GetFace(char *fileName);
-struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GLfloat vs);
+struct SpriteRec *NewSprite(TextureData *f, GLfloat h, GLfloat v, GLfloat hs, GLfloat vs, bool isBusig);
 void HandleSprite(SpritePtr sp);
 void DrawSprite(SpritePtr sp);
 void DrawBackground();

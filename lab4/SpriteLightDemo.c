@@ -20,13 +20,18 @@
 // Lägg till egna globaler här efter behov.
 int nrOfSheeps = 20;
 
+float randomFloat(){
+				return (float)rand()/(float)RAND_MAX;
+}
 
 float Distance(float h1, float v1, float h2, float v2) {
 	return sqrt((h2-h1)*(h2-h1) + (v2-v1)*(v2-v1));
 }
+	
+float maxDist = 150.0;
+float len;
 
-void SpriteBehavior() // Din kod!
-{
+void Cohesion(float cohesionC){
 	float totH = 0.0, totV = 0.0, avgH = 0.0, avgV = 0.0;
 	int sheepCount;
 
@@ -35,8 +40,6 @@ void SpriteBehavior() // Din kod!
 	
 	sp = gSpriteRoot;
 	sp1 = gSpriteRoot;
-
-	float maxDist = 200.0;
 
 	SpritePtr sheeps[nrOfSheeps];
 	int i = 0;
@@ -49,10 +52,18 @@ void SpriteBehavior() // Din kod!
 
 	do
 	{
-					totH = sp->position.h; 
-					totV = sp->position.v;
-					sheepCount = 1;	
-
+					totH = 0.0; 
+					totV = 0.0;
+					sheepCount = 0;	
+          
+          if(sp->busig){
+						if(Distance(sp->busH, sp->busV, sp->position.h, sp->position.v) < 50.0){	
+              sp->busV = gHeight*randomFloat(); 
+              sp->busH = gWidth*randomFloat(); 
+            }
+            sp->speed.v = 0.01*(sp->busV-sp->position.v);
+            sp->speed.h = 0.01*(sp->busH-sp->position.h);
+          } else {
 					for(i = 0; i < nrOfSheeps; i++){
 									if(Distance(sheeps[i]->position.h, sheeps[i]->position.v, sp->position.h, sp->position.v) < maxDist){	
 													totH += sheeps[i]->position.h;
@@ -61,13 +72,163 @@ void SpriteBehavior() // Din kod!
 									}
 					}	
 
-					avgH = totH/sheepCount;
-					avgV = totV/sheepCount;
-					sp->speed.h = 0.01*(avgH - sp->position.h);
-					sp->speed.v = 0.01*(avgV - sp->position.v);
-					sp = sp->next;
+					avgH = cohesionC*(totH/sheepCount - sp->position.h);
+					avgV = cohesionC*(totV/sheepCount - sp->position.v);
+
+          len = sqrt(avgH*avgH + avgV*avgV);
+          if(len>1){
+            avgH /= len;
+            avgV /= len;
+          }
+
+					sp->speed.h += avgH; 
+					sp->speed.v += avgV; 
+
+          }
+
+          
+          sp = sp->next;
 	} while (sp != NULL);
 
+}
+
+void Separation(separationC) {
+	SpritePtr sp1;
+	
+  float dirMoveH;
+  float dirMoveV;
+
+	SpritePtr sp;
+	
+	sp1 = gSpriteRoot;
+	sp = gSpriteRoot;
+
+
+	SpritePtr sheeps[nrOfSheeps];
+	int i = 0;
+	do 
+	{
+					sheeps[i] = sp1;
+					i++;
+					sp1 = sp1->next;
+	} while (sp1 != NULL);
+ 
+  SpritePtr closestSheep;
+  float minDist = 1, curDis;
+  do
+  {
+    minDist = 100000;
+					for(i = 0; i < nrOfSheeps; i++){
+                  curDis = Distance(sheeps[i]->position.h, sheeps[i]->position.v, sp->position.h, sp->position.v);
+									if(curDis < maxDist && curDis < minDist && curDis > 1.0)
+                  {
+                      minDist = curDis;
+                      closestSheep = sheeps[i];
+                  }
+          }
+          
+          
+          if(!sp->busig) {
+
+
+          float hLength = separationC/(sqrt(minDist));
+          if(hLength>1) {hLength =1;}
+          float vLength = separationC/(sqrt(minDist));
+          if(vLength>1) {vLength =1;}
+
+
+          dirMoveH = (sp->position.h - closestSheep->position.h);
+          dirMoveV = (sp->position.v - closestSheep->position.v); 
+          len = sqrt(dirMoveH*dirMoveH + dirMoveV*dirMoveV);
+            
+          sp->speed.h += hLength*dirMoveH/len;
+          sp->speed.v += vLength*dirMoveV/len;
+          printf("sepH: %f sepV: %f\n" , hLength*dirMoveH/len, vLength*dirMoveV/len);
+          }
+    
+
+          sp = sp->next;
+	} while (sp != NULL);
+
+}
+
+void Alignment(float alignC){
+	float totH = 0.0, totV = 0.0, avgH = 0.0, avgV = 0.0, dist;
+	int sheepCount;
+
+	SpritePtr sp;
+	SpritePtr sp1;
+	
+	sp = gSpriteRoot;
+	sp1 = gSpriteRoot;
+
+
+	SpritePtr sheeps[nrOfSheeps];
+	int i = 0;
+	do 
+	{
+					sheeps[i] = sp1;
+					i++;
+					sp1 = sp1->next;
+	} while (sp1 != NULL);
+
+	do
+	{
+					totH = 0.0; 
+					totV = 0.0;
+					sheepCount = 0;	
+
+					for(i = 0; i < nrOfSheeps; i++){
+                  dist = Distance(sheeps[i]->position.h, sheeps[i]->position.v, sp->position.h, sp->position.v); 
+									if(dist > 1.0 && dist < maxDist){	
+													totH += sheeps[i]->speed.h*maxDist/dist;
+													totV += sheeps[i]->speed.v*maxDist/dist;
+													sheepCount++;
+									}
+					}
+
+          if(!sp->busig) {
+
+					totH = alignC*totH/sheepCount;
+					totV = alignC*totV/sheepCount;
+          len = sqrt(avgH*avgH + avgV*avgV);
+          if(len>1){
+            totH /= len;
+            totV /= len;
+          }
+
+					sp->speed.h += totH; 
+					sp->speed.v += totV; 
+          
+          len = sqrt(sp->speed.h*sp->speed.h + sp->speed.v*sp->speed.v);
+          if(len>3){
+          sp->speed.h /= len;
+          sp->speed.v /= len;
+          }
+          }
+          sp = sp->next;
+	} while (sp != NULL);
+
+}
+
+
+void SpriteBehavior() // Din kod!
+{
+
+  Cohesion(0.01);
+
+  Separation(75);
+
+  Alignment(3);
+/*
+  SpritePtr sp = gSpriteRoot;
+
+	do
+	{
+    if(sp->speed.h*sp->speed.h + sp->speed.v*sp->speed.v < 0.4) {sp->speed.v=0.0;sp->speed.h=0.0;}
+	  sp = sp->next;
+	} while (sp != NULL);
+*/
 	// Lägg till din labbkod här. Det går bra att ändra var som helst i
 	// koden i övrigt, men mycket kan samlas här. Du kan utgå från den
 	// globala listroten, gSpriteRoot, för att kontrollera alla sprites
@@ -75,9 +236,6 @@ void SpriteBehavior() // Din kod!
 }
 
 
-float randomFloat(){
-				return (float)rand()/(float)RAND_MAX;
-}
 
 // Drawing routine
 void Display()
@@ -155,9 +313,9 @@ void Init()
 				srand(time(NULL));
 				for(i = 0; i < nrOfSheeps; i++) {
 								if(i < 4) { 
-									NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1);
+									NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1, true);
 								} else {
-									NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1);
+									NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1, false);
 								}
 				}	
 				/*
