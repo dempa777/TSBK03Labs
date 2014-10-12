@@ -201,7 +201,7 @@ void Alignment(float alignC){
             sp->speed.v += totV; 
 
             len = sqrt(sp->speed.h*sp->speed.h + sp->speed.v*sp->speed.v);
-            if(len>3){
+						if(len>3){
               sp->speed.h /= len;
               sp->speed.v /= len;
             }
@@ -223,10 +223,26 @@ FPoint CalcAvoidance(float diffV, float diffH){
   value.v=0.0;
   value.h=0.0;
   float len = sqrt(diffV*diffV + diffH*diffH);
-  if(len<maxDist) {
-  if (diffV!=0.0) value.v = 2.25/diffV;
-  if (diffH!=0.0) value.h = 2.25/diffH;
-  }
+	float outV, outH; 
+	float absDV, absDH;
+  absDV = sqrt(diffV*diffV);
+  absDH = sqrt(diffH*diffH);
+	
+ 	if(len<maxDist) {
+		value.v = 1.0 - absDV/maxDist;
+
+		value.h = 1.0 - absDH/maxDist;
+
+		value.v *= (absDV/diffV);
+		value.h *= (absDH/diffH);
+
+		
+	}
+		
+
+		//value.v += 0.35*(diffV/absDV);
+		//value.h += 0.35*(diffH/absDH);
+	
   return value;
 }
 
@@ -297,18 +313,45 @@ void SpriteBehavior() // Din kod!
     ptr = ptr->next;
   }
 
-  float cohesionWeight = 0.003;
-  float alignWeight = 0.001;
-  float avoidanceWeight = 3.0;
+  float cohesionWeight = 1.0;
+  float alignWeight = 0.05;
+  float avoidanceWeight = 2.0;//2.2;//0.00128;
   float len;
 
+	
 
 
   ptr = gSpriteRoot;
   for(i = 0; i < nrOfSheeps; i++) {
 
+//Normalize cohesion
+	len = sqrt(averagePos[i].v*averagePos[i].v + averagePos[i].h*averagePos[i].h);
+	if(len > 1) {
+   		averagePos[i].v = averagePos[i].v/maxDist;
+   		averagePos[i].h = averagePos[i].h/maxDist;
+		}
+//align
+    len = sqrt(speedDiff[i].v*speedDiff[i].v + speedDiff[i].h*speedDiff[i].h);
+		
+		if(len>0.0) {
+			speedDiff[i].v /= len;
+			speedDiff[i].h /= len;
+		}
+/*/Normalize avoid
+    len = sqrt(avoidanceVec[i].v*avoidanceVec[i].v + avoidanceVec[i].h*avoidanceVec[i].h);
+    if(len <= 1.0) {
+      len = 1.0;
+    }
+   	avoidanceVec[i].v = avoidanceVec[i].v/len;
+   	avoidanceVec[i].h = avoidanceVec[i].h/len;
+*/
+
+
     ptr->speed.v += speedDiff[i].v*alignWeight + averagePos[i].v*cohesionWeight + avoidanceVec[i].v*avoidanceWeight;
     ptr->speed.h += speedDiff[i].h*alignWeight + averagePos[i].h*cohesionWeight + avoidanceVec[i].h*avoidanceWeight;
+
+		printf("coes: %f %f, avoid: %f %f, allign: %f %f \n", averagePos[i].v,averagePos[i].h , avoidanceVec[i].v, avoidanceVec[i].h, speedDiff[i].h, speedDiff[i].v);
+
 
     len = sqrt(ptr->speed.v*ptr->speed.v + ptr->speed.h*ptr->speed.h);
 
@@ -318,7 +361,6 @@ void SpriteBehavior() // Din kod!
 
     ptr->speed.v /= len;
     ptr->speed.h /= len;
-
     ptr = ptr->next;
   }
 
@@ -418,13 +460,18 @@ void Init()
   foodFace = GetFace("bilder/mat.tga"); // Mat
   int i;
   srand(time(NULL));
-  for(i = 0; i < nrOfSheeps; i++) {
-    if(i < 4) { 
-      NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1, true);
+  
+      //NewSprite(blackFace, 100, 100, 2, 0, true);
+      //NewSprite(blackFace, 500, 100, -2, 0, true);
+
+for(i = 0; i < nrOfSheeps; i++) {
+    if(i < 1) { 
+      NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), 2, 2, true);
     } else {
-      NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), i*0.1, i*0.1, false);
+      NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), 2, 2, false);
     }
-  }	
+  }
+	
   /*
      NewSprite(sheepFace, 100, 200, 1, 1);
      NewSprite(sheepFace, 200, 100, 1.5, -1);
