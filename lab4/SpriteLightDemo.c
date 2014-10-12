@@ -18,7 +18,7 @@
 #include "GL_utilities.h"
 #include <time.h>
 // LŠgg till egna globaler hŠr efter behov.
-int nrOfSheeps = 10;
+int nrOfSheeps = 20;
 
 float randomFloat(){
 				return (float)rand()/(float)RAND_MAX;
@@ -28,7 +28,7 @@ float Distance(float h1, float v1, float h2, float v2) {
 	return sqrt((h2-h1)*(h2-h1) + (v2-v1)*(v2-v1));
 }
 	
-float maxDist = 100.0;
+float maxDist = 80.0;
 float len;
 
 void Cohesion(float cohesionC){
@@ -232,10 +232,15 @@ FPoint CalcAvoidance(float diffV, float diffH){
 		value.v = 1.0 - absDV/maxDist;
 
 		value.h = 1.0 - absDH/maxDist;
-
-		value.v *= (absDV/diffV);
-		value.h *= (absDH/diffH);
-
+		
+		if(diffV > 0.0 || diffV < 0.0)
+			value.v *= (absDV/diffV);
+		else
+			value.v = 0.0;
+		if(diffH > 0.0 || diffH < 0.0)		
+			value.h *= (absDH/diffH);
+		else
+			value.h = 0.0;
 		
 	}
 		
@@ -256,6 +261,8 @@ void SpriteBehavior() // Din kod!
   FPoint avoidanceVec[nrOfSheeps];
   int i,j;
 
+	FPoint temp; 
+
   for(i = 0; i < nrOfSheeps; i++) {
 
     count = 0;
@@ -265,6 +272,7 @@ void SpriteBehavior() // Din kod!
     averagePos[i].h = 0.0;
     avoidanceVec[i].h = 0.0;
     avoidanceVec[i].v = 0.0;
+		
 
     ptr2 = gSpriteRoot;
     for(j = 0; j < nrOfSheeps; j++) {
@@ -272,16 +280,20 @@ void SpriteBehavior() // Din kod!
       if(i != j){
         if(Distance(ptr->position.v, ptr->position.h, ptr2->position.v, ptr2->position.h) < maxDist){
 
-          // speed diff
-          speedDiff[i].h += ptr2->speed.h - ptr->speed.h;
-          speedDiff[i].v += ptr2->speed.v - ptr->speed.v;
+ 	        // speed diff
+ 	        speedDiff[i].h += (ptr2->speed.h - ptr->speed.h);
+ 	        speedDiff[i].v += (ptr2->speed.v - ptr->speed.v);
+	
+         	// avg pos
+         	averagePos[i].h += ptr2->position.h;
+         	averagePos[i].v += ptr2->position.v;
 
-         // avg pos
-         averagePos[i].h += ptr2->position.h;
-         averagePos[i].v += ptr2->position.v;
-
-         avoidanceVec[i] = CalcAvoidance(-ptr2->position.v + ptr->position.v, -ptr2->position.h + ptr->position.h);
-         count++;
+         	temp = CalcAvoidance(-ptr2->position.v + ptr->position.v, -ptr2->position.h + ptr->position.h);
+      	 
+					avoidanceVec[i].v += temp.v;
+					avoidanceVec[i].h += temp.h;
+			
+					count++;
         }
       }
       ptr2 = ptr2->next;
@@ -313,9 +325,9 @@ void SpriteBehavior() // Din kod!
     ptr = ptr->next;
   }
 
-  float cohesionWeight = 1.0;
+  float cohesionWeight = 0.01;
   float alignWeight = 0.05;
-  float avoidanceWeight = 2.0;//2.2;//0.00128;
+  float avoidanceWeight = 1.5;//2.2;//0.00128;
   float len;
 
 	
@@ -324,19 +336,6 @@ void SpriteBehavior() // Din kod!
   ptr = gSpriteRoot;
   for(i = 0; i < nrOfSheeps; i++) {
 
-//Normalize cohesion
-	len = sqrt(averagePos[i].v*averagePos[i].v + averagePos[i].h*averagePos[i].h);
-	if(len > 1) {
-   		averagePos[i].v = averagePos[i].v/maxDist;
-   		averagePos[i].h = averagePos[i].h/maxDist;
-		}
-//align
-    len = sqrt(speedDiff[i].v*speedDiff[i].v + speedDiff[i].h*speedDiff[i].h);
-		
-		if(len>0.0) {
-			speedDiff[i].v /= len;
-			speedDiff[i].h /= len;
-		}
 /*/Normalize avoid
     len = sqrt(avoidanceVec[i].v*avoidanceVec[i].v + avoidanceVec[i].h*avoidanceVec[i].h);
     if(len <= 1.0) {
@@ -461,8 +460,6 @@ void Init()
   int i;
   srand(time(NULL));
   
-      //NewSprite(blackFace, 100, 100, 2, 0, true);
-      //NewSprite(blackFace, 500, 100, -2, 0, true);
 
 for(i = 0; i < nrOfSheeps; i++) {
     if(i < 1) { 
@@ -472,6 +469,7 @@ for(i = 0; i < nrOfSheeps; i++) {
     }
   }
 	
+
   /*
      NewSprite(sheepFace, 100, 200, 1, 1);
      NewSprite(sheepFace, 200, 100, 1.5, -1);
