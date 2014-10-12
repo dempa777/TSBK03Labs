@@ -174,6 +174,7 @@ void updateWorld()
 	{
 		ball[i].F = SetVector(0,0,0);
 		ball[i].T = SetVector(0,0,0);
+		ball[i].omega = SetVector(0,0,0);
 	}
 
 	// Wall tests
@@ -192,35 +193,13 @@ void updateWorld()
 	// Detect collisions, calculate speed differences, apply forces
   vec3 normal;
   float diff, J, eps, distance, vRel;
-  eps = 0.5;
+  eps = 1.0;
   for (i = 0; i < kNumBalls; i++)
     for (j = i+1; j < kNumBalls; j++)
     {
       distance = getDistance(ball[i].X, ball[j].X);
 
-      if(distance < 2*kBallSize){
-     
-        
-        
-        //ra = ScalarMult(Normalize(VectorSub(ball[j].X, ball[i].X)), kBallSize);
-        //printf("ra: %f, %f, %f \n", ra.x, ra.y, ra.z);
-        
-       // printf("vpa: %f, %f, %f \n", vpa.x, vpa.y, vpa.z);
-     
-        //printf("%li \n", j);
-
-        //rb = ScalarMult(ra, -1.0);//Normalize(VectorSub(ball[i].X, ball[j].X)), kBallSize);
-        
-        //printf("rb: %f, %f, %f \n", rb.x, rb.y, rb.z);
-        
-        //diff = distance - 2*kBallSize;
-
-        //printf("diff: %f \n", diff);
-
-
-
-        //ball[j].X = VectorAdd(ball[j].X, ScalarMult(rb, -0.5));//2.0*());
-
+      if(distance <= 2*kBallSize){
         ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
    
         normal = Normalize(VectorSub(ball[i].X, ball[j].X));
@@ -229,8 +208,8 @@ void updateWorld()
 
         if(vRel < 0.0) {
           J = -vRel*(eps + 1.0)/(1.0/ball[i].mass+1.0/ball[j].mass);
-          ball[i].F = VectorAdd(ball[i].F, ScalarMult(VectorAdd(ball[i].F, ScalarMult(normal, J)), 1.0/deltaT));
-          ball[j].F = VectorAdd(ball[j].F, ScalarMult(VectorAdd(ball[j].F, ScalarMult(normal, -J)), 1.0/deltaT));
+          ball[i].F = VectorAdd(ball[i].F, ScalarMult( ScalarMult(normal, J), 1.0/deltaT));
+          ball[j].F = VectorAdd(ball[j].F, ScalarMult( ScalarMult(normal, -J), 1.0/deltaT));
         }
 
 
@@ -244,20 +223,24 @@ void updateWorld()
   GLfloat norm;
   yAxis.y = 1.0;
   float len;
+	vec3 ff;
   for (i = 0; i < kNumBalls; i++)
   {
-    if(abs(ball[i].v.x) > 0 || abs(ball[i].v.z) > 0) {
-      axis = Normalize(CrossProduct(yAxis, ball[i].v)); 
-      len = sqrt(ball[i].v.x*ball[i].v.x + ball[i].v.y*ball[i].v.y + ball[i].v.z*ball[i].v.z)/9.0;
-      ball[i].omega  = ScalarMult(axis, len);
-      ball[i].R = Mult(ArbRotate(axis, len), ball[i].R);
-        //printf("%f \n", len);
-      //printf("%f, %f, %f \n", ball[i].v.x, ball[i].v.y, ball[i].v.z); 
+    if(abs(ball[i].v.x) > 0.0 || abs(ball[i].v.z) > 0.0) {
+//      axis = Normalize(CrossProduct(yAxis, ball[i].v)); 
+//      len = sqrt(ball[i].v.x*ball[i].v.x + ball[i].v.y*ball[i].v.y + ball[i].v.z*ball[i].v.z)/deltaT;
+//      ball[i].omega  = ScalarMult(axis, len);
+			//printf("omega = %f, %f, %f  \n", ball[i].omega.x, ball[i].omega.x, ball[i].omega.z);
       // YOUR CODE HERE
-    }
+//			ff = ScalarMult(ball[i].v, -1);	    
+			
+		}
   }
 
-  // Update state, follows the book closely
+	mat4 jInvMat;
+	//float constantBall = 1/kBallSize*kBallSize;
+	float constantBall = 1.0;  
+// Update state, follows the book closely
   for (i = 0; i < kNumBalls; i++)
   {
     vec3 dX, dP, dL, dO;
@@ -265,6 +248,26 @@ void updateWorld()
 
     // Note: omega is not set. How do you calculate it?
     // YOUR CODE HERE
+
+		jInvMat = IdentityMatrix();	
+
+
+		vec3 yAxis;
+		yAxis.x = 0.0;
+		yAxis.y = 1.0;
+		yAxis.z = 0.0;
+
+		vec3 fMy = CrossProduct(ball[i].v, yAxis);
+
+		vec3 step1;
+		
+		if(sqrt(fMy.x*fMy.x + fMy.z*fMy.z + fMy.z*fMy.z)>0.0 && deltaT > 0.0){
+			step1 = MultVec3(jInvMat, fMy);
+			ball[i].omega = ScalarMult(ScalarMult(step1, -kBallSize), 1.0/deltaT);	
+			printf("fMy.x: %f,fMy.y: %f,fMy.z: %f\n", fMy.x,fMy.y,fMy.z);			
+			printf("omega.x: %f,omega.y: %f,omega.z: %f\n", ball[i].omega.x,ball[i].omega.y,ball[i].omega.z);	
+		}
+
 
     //		v := P * 1/mass
     ball[i].v = ScalarMult(ball[i].P, 1.0/(ball[i].mass));
@@ -365,7 +368,8 @@ void init()
   for (i = 0; i < kNumBalls; i++)
   {
     ball[i].mass = 1.0;
-    ball[i].X = SetVector(0.1*i - 0.5, 0.0, 0.2*i - 1.5);
+//ball[i].X = SetVector(0.0,0.0,0.0);
+    ball[i].X = SetVector(0.1*i - 1.0, 0.0, 0.2*i - 1.5);
     ball[i].P = SetVector(((float)(i % 13))/ 50.0, 0.0, ((float)(i % 15))/50.0);
     ball[i].R = IdentityMatrix();
   }
