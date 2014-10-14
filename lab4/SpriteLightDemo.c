@@ -242,6 +242,7 @@ FPoint CalcAvoidance(float diffV, float diffH){
   FPoint speedDiff[nrOfSheeps];
   FPoint averagePos[nrOfSheeps];
   FPoint avoidanceVec[nrOfSheeps];
+  SpritePtr food;
 
 void FirstLoop() {
   SpritePtr ptr;
@@ -320,6 +321,10 @@ void SecondLoop(){
   float cohesionWeight = 0.01;
   float alignWeight = 0.1;
   float avoidanceWeight = 1.5;//2.2;//0.00128;
+  float foodWeight = 0.0003;
+  float foodVelV;
+  float foodVelH;
+
   float len;
 
   SpritePtr ptr;
@@ -336,8 +341,17 @@ void SecondLoop(){
             ptr->speed.h = 0.01*(ptr->busH-ptr->position.h);
 			
 		} else {
-		ptr->speed.v += speedDiff[i].v*alignWeight + averagePos[i].v*cohesionWeight + avoidanceVec[i].v*avoidanceWeight;
-    ptr->speed.h += speedDiff[i].h*alignWeight + averagePos[i].h*cohesionWeight + avoidanceVec[i].h*avoidanceWeight;
+     foodVelH = -ptr->position.h + food->position.h;
+     foodVelV = -ptr->position.v + food->position.v;
+
+    if(sqrt(foodVelH*foodVelH + foodVelV*foodVelV) < 100.0) { 
+      food->position.v = gHeight*randomFloat();
+      food->position.h = gWidth*randomFloat();
+
+    }
+
+		ptr->speed.v += speedDiff[i].v*alignWeight + averagePos[i].v*cohesionWeight + avoidanceVec[i].v*avoidanceWeight + foodWeight*foodVelV;
+    ptr->speed.h += speedDiff[i].h*alignWeight + averagePos[i].h*cohesionWeight + avoidanceVec[i].h*avoidanceWeight + foodWeight*foodVelH;
 
 		printf("coes: %f %f, avoid: %f %f, allign: %f %f \n", averagePos[i].v,averagePos[i].h , avoidanceVec[i].v, avoidanceVec[i].h, speedDiff[i].h, speedDiff[i].v);
 
@@ -356,6 +370,8 @@ void SecondLoop(){
 }
 
 }
+
+
 
 void SpriteBehavior() // Din kod!
 {
@@ -440,15 +456,17 @@ void Init()
   int i;
   srand(time(NULL));
   
+  food = NewSprite(foodFace, gWidth*randomFloat(), gHeight*randomFloat(), 0.0, 0.0, false);
 
 for(i = 0; i < nrOfSheeps; i++) {
-    if(i < 3) { 
+    if(i < 1) { 
       NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), i, i, true);
     } else {
       NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), i, i, false);
     }
   }
-	
+
+ 
 
   /*
      NewSprite(sheepFace, 100, 200, 1, 1);
