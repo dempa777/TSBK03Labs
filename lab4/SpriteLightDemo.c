@@ -18,7 +18,7 @@
 #include "GL_utilities.h"
 #include <time.h>
 // Lägg till egna globaler här efter behov.
-int nrOfSheeps = 20;
+#define nrOfSheeps 20
 
 float randomFloat(){
 				return (float)rand()/(float)RAND_MAX;
@@ -213,13 +213,6 @@ void Alignment(float alignC){
 
 FPoint CalcAvoidance(float diffV, float diffH){
   FPoint value;
-  /*if(diffV > 0.0 && diffH > 0.0) { 
-    value.v = 10.0/(diffV);
-    value.h = 10.0/(diffH);
-  } else {
-    value.v = 10.0;
-    value.h = 10.0;
-  }*/
   value.v=0.0;
   value.h=0.0;
   float len = sqrt(diffV*diffV + diffH*diffH);
@@ -243,26 +236,22 @@ FPoint CalcAvoidance(float diffV, float diffH){
 			value.h = 0.0;
 		
 	}
-		
-
-		//value.v += 0.35*(diffV/absDV);
-		//value.h += 0.35*(diffH/absDH);
-	
   return value;
 }
 
-void SpriteBehavior() // Din kod!
-{
-  SpritePtr ptr = gSpriteRoot;
-  SpritePtr ptr2 = gSpriteRoot;
-  int count;
   FPoint speedDiff[nrOfSheeps];
   FPoint averagePos[nrOfSheeps];
   FPoint avoidanceVec[nrOfSheeps];
+
+void FirstLoop() {
+  SpritePtr ptr;
+  SpritePtr ptr2;
   int i,j;
+  int count;
 
 	FPoint temp; 
 
+  ptr = gSpriteRoot;
   for(i = 0; i < nrOfSheeps; i++) {
 
     count = 0;
@@ -324,29 +313,30 @@ void SpriteBehavior() // Din kod!
     }
     ptr = ptr->next;
   }
+}
 
+
+void SecondLoop(){
   float cohesionWeight = 0.01;
-  float alignWeight = 0.05;
+  float alignWeight = 0.1;
   float avoidanceWeight = 1.5;//2.2;//0.00128;
   float len;
 
-	
-
-
+  SpritePtr ptr;
+  SpritePtr ptr2;
+  int i,j;
   ptr = gSpriteRoot;
   for(i = 0; i < nrOfSheeps; i++) {
-
-/*/Normalize avoid
-    len = sqrt(avoidanceVec[i].v*avoidanceVec[i].v + avoidanceVec[i].h*avoidanceVec[i].h);
-    if(len <= 1.0) {
-      len = 1.0;
-    }
-   	avoidanceVec[i].v = avoidanceVec[i].v/len;
-   	avoidanceVec[i].h = avoidanceVec[i].h/len;
-*/
-
-
-    ptr->speed.v += speedDiff[i].v*alignWeight + averagePos[i].v*cohesionWeight + avoidanceVec[i].v*avoidanceWeight;
+    if(ptr->busig) {
+						if(Distance(ptr->busH, ptr->busV, ptr->position.h, ptr->position.v) < 50.0){	
+              ptr->busV = gHeight*randomFloat(); 
+              ptr->busH = gWidth*randomFloat(); 
+            }
+            ptr->speed.v = 0.01*(ptr->busV-ptr->position.v);
+            ptr->speed.h = 0.01*(ptr->busH-ptr->position.h);
+			
+		} else {
+		ptr->speed.v += speedDiff[i].v*alignWeight + averagePos[i].v*cohesionWeight + avoidanceVec[i].v*avoidanceWeight;
     ptr->speed.h += speedDiff[i].h*alignWeight + averagePos[i].h*cohesionWeight + avoidanceVec[i].h*avoidanceWeight;
 
 		printf("coes: %f %f, avoid: %f %f, allign: %f %f \n", averagePos[i].v,averagePos[i].h , avoidanceVec[i].v, avoidanceVec[i].h, speedDiff[i].h, speedDiff[i].v);
@@ -360,27 +350,17 @@ void SpriteBehavior() // Din kod!
 
     ptr->speed.v /= len;
     ptr->speed.h /= len;
+		}
     ptr = ptr->next;
-  }
+  
+}
 
-  //  Cohesion(0.01);
+}
 
-  //  Separation(75);
-
-  //  Alignment(3);
-  /*
-     SpritePtr sp = gSpriteRoot;
-
-     do
-     {
-     if(sp->speed.h*sp->speed.h + sp->speed.v*sp->speed.v < 0.4) {sp->speed.v=0.0;sp->speed.h=0.0;}
-     sp = sp->next;
-     } while (sp != NULL);
-     */
-  // Lägg till din labbkod här. Det går bra att ändra var som helst i
-  // koden i övrigt, men mycket kan samlas här. Du kan utgå från den
-  // globala listroten, gSpriteRoot, för att kontrollera alla sprites
-  // hastigheter och positioner, eller arbeta från egna globaler.
+void SpriteBehavior() // Din kod!
+{
+	FirstLoop();
+	SecondLoop();	
 }
 
 
@@ -462,10 +442,10 @@ void Init()
   
 
 for(i = 0; i < nrOfSheeps; i++) {
-    if(i < 1) { 
-      NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), 2, 2, true);
+    if(i < 3) { 
+      NewSprite(blackFace, gWidth*randomFloat(), gHeight*randomFloat(), i, i, true);
     } else {
-      NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), 2, 2, false);
+      NewSprite(sheepFace, gWidth*randomFloat(), gHeight*randomFloat(), i, i, false);
     }
   }
 	
